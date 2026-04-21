@@ -5,7 +5,7 @@ WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 # Build the application, skipping tests for speed
-RUN mvn clean package -DskipTests
+RUN mvn clean package
 
 # Stage 2: Run stage
 FROM eclipse-temurin:17-jre-jammy

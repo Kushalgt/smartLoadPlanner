@@ -14,7 +14,7 @@ public class SmartLoaderService {
         Map<String, List<Order>> compatibleOrders = new HashMap<>();
         LoadOptimizationResponse finalResponse = LoadOptimizationResponse.of(truck.getId());
         for (Order order : orders) {
-            String compatibilityCriteria = order.getOrigin() + order.getDestination() + order.isHazmat();
+            String compatibilityCriteria = order.getOrigin() + order.getDestination() + order.getIsHazmat();
             compatibleOrders.computeIfAbsent(compatibilityCriteria, key -> new ArrayList<>()).add(order);
         }
         for (List<Order> orderList : compatibleOrders.values()) {
@@ -36,10 +36,9 @@ public class SmartLoaderService {
         LoadOptimizationResponse currentResponse = LoadOptimizationResponse.of(truck.getId());
 
         // 3. Start the backtracking at index 0.
-        // Passing null for dates is cleaner than Instant.MIN/MAX if your canOrderBeTaken handles nulls.
         backtrack(orders, 0, truck, currentResponse, null, null, bestResponseWrapper);
 
-        // 4. Calculate final utilization percentages only once at the end
+        // 4. Calculating final utilization percentages of volume and weight
         LoadOptimizationResponse finalBest = bestResponseWrapper[0];
         finalBest.setUtilizationWeightPercent(
                 Math.round(((double) finalBest.getTotalWeightLbs() / truck.getMaxWeightLbs()) * 10000.0) / 100.0
@@ -79,10 +78,8 @@ public class SmartLoaderService {
             newMinDelivery = currentMinDelivery;
         }
 
-        // The feasibility rule: The latest pickup must happen on or before the earliest delivery.
-        // If newMaxPickup > newMinDelivery, the schedule conflicts.
+        // If newMaxPickup > newMinDelivery, then there is a  conflict.
         return !newMaxPickup.after(newMinDelivery);
-
         // If it passed all the pruning checks, the order can be taken!
     }
 
@@ -102,7 +99,7 @@ public class SmartLoaderService {
                            LoadOptimizationResponse[] bestResponseWrapper) {
 
         // BASE CASE: If the current payout is better than our global best, update the global best.
-        // We must DEEP COPY the currentResponse because we are about to modify it in the next steps.
+        //DEEP COPYING the currentResponse because we are about to modify it in the next steps.
         if (currentResponse.getTotalPayoutCents() > bestResponseWrapper[0].getTotalPayoutCents()) {
             bestResponseWrapper[0] = cloneResponse(currentResponse);
         }
@@ -114,25 +111,21 @@ public class SmartLoaderService {
 
         Order order = orders.get(index);
 
-        // ==========================================
         // BRANCH 1: SKIP THIS ORDER
-        // ==========================================
         // We simply move to the next index without modifying currentResponse or the dates.
         backtrack(orders, index + 1, truck, currentResponse, currentMaxPickup, currentMinDelivery, bestResponseWrapper);
 
-        // ==========================================
         // BRANCH 2: TAKE THIS ORDER (If valid)
         // ==========================================
         if (canOrderBeTaken(currentResponse, order, truck, currentMaxPickup, currentMinDelivery)) {
 
             // 1. Calculate new date bounds.
-            // We calculate these into NEW variables so we don't have to "undo" them later.
             Date newMaxPickup = (currentMaxPickup == null || order.getPickupDate().after(currentMaxPickup))
                     ? order.getPickupDate() : currentMaxPickup;
             Date newMinDelivery = (currentMinDelivery == null || order.getDeliveryDate().before(currentMinDelivery))
                     ? order.getDeliveryDate() : currentMinDelivery;
 
-            // 2. DO (State Modification)
+            // 2. state modification
             currentResponse.getSelectedOrderIds().add(order.getId());
             currentResponse.setTotalPayoutCents(currentResponse.getTotalPayoutCents() + order.getPayoutCents());
             currentResponse.setTotalWeightLbs(currentResponse.getTotalWeightLbs() + order.getWeightLbs());

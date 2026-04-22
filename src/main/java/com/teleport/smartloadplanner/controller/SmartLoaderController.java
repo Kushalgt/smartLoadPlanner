@@ -1,8 +1,8 @@
 package com.teleport.smartloadplanner.controller;
 
 import com.teleport.smartloadplanner.dto.LoadOptimizationRequest;
-import com.teleport.smartloadplanner.dto.LoadOptimizationResponse;
 import com.teleport.smartloadplanner.service.SmartLoaderService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,9 +17,11 @@ public class SmartLoaderController {
     SmartLoaderService smartLoaderService;
 
     @PostMapping("/optimize")
-    public ResponseEntity<LoadOptimizationResponse> optimizeLoader(@RequestBody LoadOptimizationRequest request) {
+    public ResponseEntity<?> optimizeLoader(@Valid @RequestBody LoadOptimizationRequest request) {
         try {
             return ResponseEntity.ok().body(smartLoaderService.optimizeLoad(request.getTruck(), request.getOrders()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }

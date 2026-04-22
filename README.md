@@ -18,6 +18,14 @@ The SmartLoad Optimization API is a high-performance logistics service designed 
 * **Fast Pruning via Compatibility Keys:** To achieve sub-800ms performance, the backtracking algorithm avoids redundant, multi-field object comparisons. Instead, it generates a composite `compatibilityCriteria` key (`Origin + Destination + isHazmat`) for early evaluation. 
     * *Example:* `"Los Angeles, CADallas, TXtrue"`
     * This allows the recursion tree to instantly prune fundamentally incompatible branches using a single $O(1)$ string match, drastically reducing the state space.
+## System Design & Trade-offs
+
+### Why No Memoization (Caching)?
+While Dynamic Programming (memoization) is often paired with recursion, it was intentionally omitted from this architecture to meet the strict <800ms latency requirement. 
+
+1. **Granular State Space:** The cache key would require tracking the current index, exact weight, exact volume, and date boundaries. Because weight and volume are highly granular (e.g., a truck can have 44,925 lbs vs 44,926 lbs), the probability of hitting the exact same state via a different branch is near zero.
+2. **Garbage Collection (GC) Overhead:** At $n=22$, the algorithm evaluates millions of potential paths. Creating a `CacheKey` object for every state would overwhelm the JVM heap, triggering aggressive Garbage Collection pauses that would severely degrade performance.
+3. **Primitive Speed vs. HashMap Overhead:** Raw recursive method calls using primitive math operations (addition/subtraction) execute in nanoseconds. The overhead of computing hashes and querying a `HashMap` at every node is significantly slower than aggressively pruning the tree and moving forward.
 
 ## How to Run
 

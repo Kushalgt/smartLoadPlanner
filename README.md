@@ -9,10 +9,15 @@ The SmartLoad Optimization API is a high-performance logistics service designed 
 * **High Performance**: Engineered to handle up to 22 orders and return results in under 800ms.
 * **Stateless Architecture**: Built as a purely in-memory REST API with no database requirements.
 
-## Tech Stack5
+## Tech Stack
 * **Language**: Java 17 (Spring Boot)
 * **Build Tool**: Maven
 * **Containerization**: Docker & Docker Compose
+## Technical Optimizations
+
+* **Fast Pruning via Compatibility Keys:** To achieve sub-800ms performance, the backtracking algorithm avoids redundant, multi-field object comparisons. Instead, it generates a composite `compatibilityCriteria` key (`Origin + Destination + isHazmat`) for early evaluation. 
+    * *Example:* `"Los Angeles, CADallas, TXtrue"`
+    * This allows the recursion tree to instantly prune fundamentally incompatible branches using a single $O(1)$ string match, drastically reducing the state space.
 
 ## How to Run
 

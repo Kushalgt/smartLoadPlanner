@@ -1,5 +1,6 @@
 package com.teleport.smartloadplanner.model;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,7 +17,10 @@ public class Order {
     private Long volumeCuft;
     private String origin;
     private String destination;
+    @NotNull(message = "Pickup date required")
     private Date pickupDate;
+    @NotNull(message = "Delivery date required")
     private Date deliveryDate;
-    private boolean isHazmat;
+    @NotNull(message = "is_hazmat not provided")
+    private Boolean isHazmat;
 }
